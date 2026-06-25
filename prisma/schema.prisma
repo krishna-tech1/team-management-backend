@@ -47,6 +47,26 @@ enum AttendanceStatus {
   LATE
 }
 
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LeaveType {
+  SICK
+  CASUAL
+  EARNED
+  OTHER
+}
+
+enum TrackingStatus {
+  CHECKED_IN
+  CHECKED_OUT
+  LATE
+  OFFLINE
+}
+
 enum DocumentType {
   GST
   MCA
@@ -67,6 +87,7 @@ model User {
   role       UserRole
 
   employee   Employee?
+  teamLead   TeamLead?
 
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
@@ -99,11 +120,13 @@ model Employee {
   notifications    Notification[]
 
   // New relations
-  assignedClients  Client[]       @relation("EmployeeClients")
-  assignedTasks    Task[]         @relation("EmployeeTasks")
-  allocations      Allocation[]
-  employeeDocs     Document[]     @relation("EmployeeDocs") // documents belonging to employee
-  incentives       Incentive[]
+  assignedClients     Client[]           @relation("EmployeeClients")
+  assignedTasks       Task[]             @relation("EmployeeTasks")
+  allocations         Allocation[]
+  employeeDocs        Document[]         @relation("EmployeeDocs") // documents belonging to employee
+  incentives          Incentive[]
+  teamLeadMemberships TeamLeadEmployee[]
+  leaveRequests       LeaveRequest[]
 
   isActive         Boolean        @default(true)
   createdAt        DateTime       @default(now())
@@ -212,6 +235,8 @@ model Attendance {
   checkOutAddress    String?
 
   status             AttendanceStatus
+  date               DateTime?         // date of this attendance record
+  remarks            String?
 
   employee           Employee          @relation(fields: [employeeId], references: [id])
 
@@ -219,6 +244,7 @@ model Attendance {
   updatedAt          DateTime          @updatedAt
 
   @@index([employeeId])
+  @@index([date])
 }
 
 model WorkLog {
@@ -279,6 +305,10 @@ model Notification {
 
   isRead      Boolean           @default(false)
 
+  // Team Lead extensions
+  createdBy   String?           // email of sender
+  isTeamLead  Boolean           @default(false)
+
   createdAt   DateTime          @default(now())
 
   @@index([employeeId])
@@ -338,4 +368,58 @@ model Invoice {
   createdAt   DateTime @default(now())
 
   @@index([clientId])
+}
+
+// ─── TEAM LEAD MODELS ─────────────────────────────────────────────────────────
+
+model TeamLead {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  user        User     @relation(fields: [userId], references: [id])
+  teamName    String?
+  department  String?
+
+  teamMembers TeamLeadEmployee[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model TeamLeadEmployee {
+  id         Int      @id @default(autoincrement())
+  teamLeadId Int
+  employeeId Int
+
+  teamLead   TeamLead @relation(fields: [teamLeadId], references: [id])
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  assignedAt DateTime @default(now())
+
+  @@unique([teamLeadId, employeeId])
+  @@index([teamLeadId])
+  @@index([employeeId])
+}
+
+model LeaveRequest {
+  id          Int         @id @default(autoincrement())
+  employeeId  Int
+  employee    Employee    @relation(fields: [employeeId], references: [id])
+
+  leaveType   LeaveType
+  fromDate    DateTime
+  toDate      DateTime
+  reason      String?
+  status      LeaveStatus @default(PENDING)
+
+  reviewedBy  String?     // Team Lead email
+  reviewNote  String?
+  reviewedAt  DateTime?
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([employeeId])
+  @@index([status])
 }

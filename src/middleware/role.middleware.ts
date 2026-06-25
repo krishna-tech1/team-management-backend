@@ -17,3 +17,5 @@ export const requireRole = (...roles: string[]) => {
 export const requireSuperAdmin = requireRole('SUPER_ADMIN');
 export const requireManagerOrAbove = requireRole('SUPER_ADMIN', 'TEAM_MANAGER');
 export const requireAnyRole = requireRole('SUPER_ADMIN', 'TEAM_MANAGER', 'EMPLOYEE');
+export const requireTeamLead = requireRole('TEAM_LEAD');
+export const requireTeamLeadOrAdmin = requireRole('SUPER_ADMIN', 'TEAM_LEAD');
