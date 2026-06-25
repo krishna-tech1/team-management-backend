@@ -11,6 +11,7 @@ import auditlogRouter from '../modules/auditlogs/auditlog.routes';
 import incentiveRouter from '../modules/incentives/incentive.routes';
 import employeeAccessRouter from '../modules/employeeAccess/employeeAccess.routes';
 import teamleadRouter from '../modules/teamlead/teamlead.routes';
+import employeeMobileRouter from '../modules/employee/employee.routes';
 
 const router = Router();
 
@@ -30,5 +31,7 @@ router.use(auditlogRouter);
 router.use(incentiveRouter);
 router.use(employeeAccessRouter);
 router.use(teamleadRouter);
+router.use(employeeMobileRouter);
 
-export default router;
+export default router;
+

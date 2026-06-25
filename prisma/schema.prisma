@@ -127,6 +127,8 @@ model Employee {
   incentives          Incentive[]
   teamLeadMemberships TeamLeadEmployee[]
   leaveRequests       LeaveRequest[]
+  workUpdates         TaskWorkUpdate[]
+  taskStatusHistory   TaskStatusHistory[]
 
   isActive         Boolean        @default(true)
   createdAt        DateTime       @default(now())
@@ -190,6 +192,10 @@ model Task {
   assignedEmployeeId Int?
   assignedEmployee   Employee?     @relation("EmployeeTasks", fields: [assignedEmployeeId], references: [id])
   createdBy          String?
+  siteLocation       String?       // optional site/location info for mobile display
+
+  workUpdates        TaskWorkUpdate[]
+  statusHistory      TaskStatusHistory[]
 
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -423,3 +429,61 @@ model LeaveRequest {
   @@index([employeeId])
   @@index([status])
 }
+
+// ─── EMPLOYEE MOBILE BACKEND MODELS ─────────────────────────────────────────
+
+model TaskWorkUpdate {
+  id          Int      @id @default(autoincrement())
+
+  taskId      Int
+  task        Task     @relation(fields: [taskId], references: [id])
+
+  employeeId  Int
+  employee    Employee @relation(fields: [employeeId], references: [id])
+
+  title       String
+  description String?
+  progress    Int      @default(0)   // 0–100 percentage
+  remarks     String?
+
+  attachments TaskWorkAttachment[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([taskId])
+  @@index([employeeId])
+}
+
+model TaskWorkAttachment {
+  id            Int            @id @default(autoincrement())
+
+  workUpdateId  Int
+  workUpdate    TaskWorkUpdate @relation(fields: [workUpdateId], references: [id])
+
+  fileName      String
+  filePath      String
+  fileType      String         // "photo" | "document"
+
+  createdAt     DateTime       @default(now())
+
+  @@index([workUpdateId])
+}
+
+model TaskStatusHistory {
+  id          Int        @id @default(autoincrement())
+
+  taskId      Int
+  task        Task       @relation(fields: [taskId], references: [id])
+
+  employeeId  Int
+  employee    Employee   @relation(fields: [employeeId], references: [id])
+
+  fromStatus  TaskStatus?
+  toStatus    TaskStatus
+  changedAt   DateTime   @default(now())
+  note        String?
+
+  @@index([taskId])
+  @@index([employeeId])
+}
