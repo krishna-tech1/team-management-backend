@@ -105,6 +105,7 @@ model Employee {
   lastName         String
   email            String         @unique
   phone            String?
+  profilePhoto     String?
   department       String?
   designation      String?
   joiningDate      DateTime
@@ -486,4 +487,4 @@ model TaskStatusHistory {
 
   @@index([taskId])
   @@index([employeeId])
-}
+}

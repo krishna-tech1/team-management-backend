@@ -1,42 +1,36 @@
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import cloudinary from '../../config/cloudinary';
 
-// Ensure upload directories exist
-const ensureDir = (dir: string) => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-};
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: async (_req, file) => {
+    const isPhoto = file.fieldname === 'photos';
 
-const photoDir = path.join(process.cwd(), 'uploads', 'work-updates', 'photos');
-const documentDir = path.join(process.cwd(), 'uploads', 'work-updates', 'documents');
+    return {
+      folder: isPhoto
+        ? 'gst-mca/work-updates/photos'
+        : 'gst-mca/work-updates/documents',
 
-ensureDir(photoDir);
-ensureDir(documentDir);
+      resource_type: 'auto',
 
-const storage = multer.diskStorage({
-  destination: (_req, file, cb) => {
-    if (file.fieldname === 'photos') {
-      cb(null, photoDir);
-    } else {
-      cb(null, documentDir);
-    }
-  },
-  filename: (_req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname);
-    cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+      public_id: `${Date.now()}-${file.originalname.split('.')[0]}`,
+    };
   },
 });
 
-const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = (
+  _req: any,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+) => {
   const allowedMimeTypes = [
     // Images
     'image/jpeg',
     'image/png',
     'image/gif',
     'image/webp',
+
     // Documents
     'application/pdf',
     'application/msword',
@@ -56,7 +50,7 @@ export const workUpdateUpload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10 MB per file
+    fileSize: 10 * 1024 * 1024, // 10 MB
   },
 }).fields([
   { name: 'photos', maxCount: 10 },

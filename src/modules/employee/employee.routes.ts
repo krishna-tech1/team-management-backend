@@ -1,8 +1,12 @@
 import { Router } from 'express';
 import multer from 'multer';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import cloudinary from '../../config/cloudinary';
+
 import { authenticateToken } from '../../middleware/auth.middleware';
 import { requireEmployee } from '../../middleware/role.middleware';
 import { workUpdateUpload } from './upload.middleware';
+
 import {
   dashboardController,
   getTasksController,
@@ -24,18 +28,18 @@ import {
 
 const router = Router();
 
-// All employee routes are protected with authenticateToken + requireEmployee
+// All employee routes are protected
 const protect = [authenticateToken, requireEmployee];
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 router.get('/employee/dashboard', ...protect, dashboardController);
 
-// ─── TASKS ───────────────────────────────────────────────────────────────────
+// ─── TASKS ────────────────────────────────────────────────────────────────────
 router.get('/employee/tasks', ...protect, getTasksController);
 router.get('/employee/tasks/:id', ...protect, getTaskByIdController);
 router.put('/employee/tasks/:id/status', ...protect, updateTaskStatusController);
 
-// ─── WORK UPDATE (multipart/form-data) ───────────────────────────────────────
+// ─── WORK UPDATE (Cloudinary Upload) ──────────────────────────────────────────
 router.post(
   '/employee/tasks/:id/work-update',
   ...protect,
@@ -46,7 +50,7 @@ router.post(
 // ─── TASK HISTORY ─────────────────────────────────────────────────────────────
 router.get('/employee/tasks/:id/history', ...protect, getTaskHistoryController);
 
-// ─── PERFORMANCE ─────────────────────────────────────────────────────────────
+// ─── PERFORMANCE ──────────────────────────────────────────────────────────────
 router.get('/employee/performance', ...protect, getPerformanceController);
 
 // ─── INCENTIVES ───────────────────────────────────────────────────────────────
@@ -57,33 +61,42 @@ router.post('/employee/checkin', ...protect, checkInController);
 router.post('/employee/checkout', ...protect, checkOutController);
 
 // ─── ATTENDANCE HISTORY ───────────────────────────────────────────────────────
-// ?filter=today|weekly|monthly
 router.get('/employee/attendance', ...protect, getAttendanceController);
 
 // ─── PROFILE ──────────────────────────────────────────────────────────────────
 router.get('/employee/profile', ...protect, getProfileController);
 
-// Profile update — supports optional profile photo via multipart
+// Cloudinary Storage for Profile Photos
+const profilePhotoStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'gst-mca/profile-photos',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+  } as any,
+});
+
 const profilePhotoUpload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => {
-      const dir = require('path').join(process.cwd(), 'uploads', 'profile-photos');
-      require('fs').mkdirSync(dir, { recursive: true });
-      cb(null, dir);
-    },
-    filename: (_req, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
-      const ext = require('path').extname(file.originalname);
-      cb(null, `profile-${Date.now()}${ext}`);
-    },
-  }),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  storage: profilePhotoStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+  },
 }).single('profilePhoto');
 
-router.put('/employee/profile', ...protect, profilePhotoUpload, updateProfileController);
+router.put(
+  '/employee/profile',
+  ...protect,
+  profilePhotoUpload,
+  updateProfileController
+);
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
 router.get('/employee/notifications', ...protect, getNotificationsController);
-router.patch('/employee/notifications/:id/read', ...protect, markNotificationReadController);
+
+router.patch(
+  '/employee/notifications/:id/read',
+  ...protect,
+  markNotificationReadController
+);
 
 // ─── DOCUMENTS ────────────────────────────────────────────────────────────────
 router.get('/employee/documents', ...protect, getDocumentsController);

@@ -733,21 +733,22 @@ export const getEmployeeProfile = async (userId: number) => {
   const performanceScore = assigned > 0 ? Math.round((completed / assigned) * 100) : 0;
 
   return {
-    id: employee.id,
-    employeeCode: employee.employeeCode,
-    firstName: employee.firstName,
-    lastName: employee.lastName,
-    email: employee.email,
-    phone: employee.phone,
-    department: employee.department,
-    designation: employee.designation,
-    joiningDate: employee.joiningDate,
-    status: employee.status,
-    userEmail: user?.email,
-    performanceScore,
-    currentIncentive: incentiveSum._sum.amount ?? 0,
-    attendancePercentage,
-  };
+  id: employee.id,
+  employeeCode: employee.employeeCode,
+  firstName: employee.firstName,
+  lastName: employee.lastName,
+  email: employee.email,
+  phone: employee.phone,
+  profilePhoto: employee.profilePhoto,
+  department: employee.department,
+  designation: employee.designation,
+  joiningDate: employee.joiningDate,
+  status: employee.status,
+  userEmail: user?.email,
+  performanceScore,
+  currentIncentive: incentiveSum._sum.amount ?? 0,
+  attendancePercentage,
+};
 };
 
 export const updateEmployeeProfile = async (
@@ -763,13 +764,16 @@ export const updateEmployeeProfile = async (
   const employee = await getEmployeeByUserId(userId);
 
   const employeeUpdate: any = {};
-  if (data.phone) employeeUpdate.phone = data.phone;
 
-  // Store emergency contact and address in the department/designation fields is bad practice.
-  // We'll use department for this scope — but since the schema doesn't have these fields,
-  // we update what's available and note the limitation.
-  // For the password update we update the User record.
+  if (data.phone) {
+    employeeUpdate.phone = data.phone;
+  }
 
+  if (data.profilePhoto) {
+    employeeUpdate.profilePhoto = data.profilePhoto;
+  }
+
+  // Update Employee table
   if (Object.keys(employeeUpdate).length > 0) {
     await prisma.employee.update({
       where: { id: employee.id },
@@ -777,12 +781,15 @@ export const updateEmployeeProfile = async (
     });
   }
 
-  // Update password on User record if provided
+  // Update password if provided
   if (data.password) {
     const hashed = await hashPassword(data.password);
+
     await prisma.user.update({
       where: { id: userId },
-      data: { password: hashed },
+      data: {
+        password: hashed,
+      },
     });
   }
 
